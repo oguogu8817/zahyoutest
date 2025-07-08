@@ -15,38 +15,86 @@ addPointBtn.addEventListener('click', function() {
     newPointInput.classList.add('point-input');
     newPointInput.innerHTML = `
         <input type="text" name="name" placeholder="点名" value="P${pointCounter}">
-        <input type="number" name="x" placeholder="X座標" required>
-        <input type="number" name="y" placeholder="Y座標" required>
+        <input type="number" name="x" placeholder="X座標" step="0.001" required>
+        <input type="number" name="y" placeholder="Y座標" step="0.001" required>
     `;
     pointList.appendChild(newPointInput);
     pointCounter++;
 });
 
-// フォーム送信イベントのリスナー
-form.addEventListener('submit', function(event) {
-    event.preventDefault(); // デフォルトの送信をキャンセル
+// 描画処理を関数にまとめる
+function plotPoints() {
     drawnPoints = []; // 描画前にリストをリセット
     selectedPoint = null; // 選択をリセット
     infoDisplay.textContent = '点をクリックして距離測定を開始します。';
 
-    // Canvasをクリアして軸を再描画
+    // Canvasをクリア
     clearCanvas();
-    drawAxes();
 
-    // すべての入力欄から座標と点名を取得して描画
+    // すべての入力欄から座標と点名を取得
     const pointInputs = pointList.querySelectorAll('.point-input');
+    const points = [];
     pointInputs.forEach(input => {
         const name = input.querySelector('input[name="name"]').value;
         const x = parseFloat(input.querySelector('input[name="x"]').value);
         const y = parseFloat(input.querySelector('input[name="y"]').value);
 
         if (!isNaN(x) && !isNaN(y)) {
-            const canvasX = canvas.width / 2 + x;
-            const canvasY = canvas.height / 2 - y;
-            drawnPoints.push({ name, x, y, canvasX, canvasY });
-            drawPoint(canvasX, canvasY, name);
+            points.push({ name, x, y });
         }
     });
+
+    if (points.length === 0) {
+        drawAxes(); // 点がない場合はデフォルトの軸を描画
+        return;
+    }
+
+    // 全ての点が描画領域に収まるように縮尺とオフセットを計算
+    let minX = points[0].x, maxX = points[0].x;
+    let minY = points[0].y, maxY = points[0].y;
+    points.forEach(p => {
+        if (p.x < minX) minX = p.x;
+        if (p.x > maxX) maxX = p.x;
+        if (p.y < minY) minY = p.y;
+        if (p.y > maxY) maxY = p.y;
+    });
+
+    const padding = 50; // キャンバスの端からの余白
+    const canvasWidth = canvas.width - padding * 2;
+    const canvasHeight = canvas.height - padding * 2;
+
+    const rangeX = maxX - minX;
+    const rangeY = maxY - minY;
+
+    // 縮尺を計算
+    let scale;
+    if (rangeX === 0 && rangeY === 0) {
+        scale = 1;
+    } else {
+        scale = Math.min(canvasWidth / (rangeX || 1), canvasHeight / (rangeY || 1));
+    }
+    
+    // 描画の中心を計算
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+
+    // 新しい軸を描画
+    drawAxes(scale, centerX, centerY);
+
+    // 座標を変換して描画
+    points.forEach(p => {
+        const canvasX = (p.x - centerX) * scale + canvas.width / 2;
+        const canvasY = -(p.y - centerY) * scale + canvas.height / 2;
+        
+        drawnPoints.push({ name: p.name, x: p.x, y: p.y, canvasX, canvasY });
+        drawPoint(canvasX, canvasY, p.name);
+    });
+}
+
+// フォーム送信イベントのリスナー
+form.addEventListener('submit', function(event) {
+    event.preventDefault(); // デフォルトの送信をキャンセル
+    plotPoints();
 });
 
 /**
@@ -77,15 +125,21 @@ function clearCanvas() {
 }
 
 // 初期状態でCanvasに軸を描画
-function drawAxes() {
+function drawAxes(scale = 1, centerX = 0, centerY = 0) {
     ctx.beginPath();
-    // X軸
-    ctx.moveTo(0, canvas.height / 2);
-    ctx.lineTo(canvas.width, canvas.height / 2);
-    // Y軸
-    ctx.moveTo(canvas.width / 2, 0);
-    ctx.lineTo(canvas.width / 2, canvas.height);
     ctx.strokeStyle = '#ccc';
+    ctx.lineWidth = 1;
+
+    // Y軸 (x=0)
+    const originX = (0 - centerX) * scale + canvas.width / 2;
+    ctx.moveTo(originX, 0);
+    ctx.lineTo(originX, canvas.height);
+
+    // X軸 (y=0)
+    const originY = canvas.height / 2 - (0 - centerY) * scale;
+    ctx.moveTo(0, originY);
+    ctx.lineTo(canvas.width, originY);
+
     ctx.stroke();
 }
 
@@ -180,3 +234,4 @@ function drawLine(p1, p2) {
 // 初期描画
 clearCanvas();
 drawAxes();
+plotPoints(); // 初期座標を描画
