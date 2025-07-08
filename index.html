@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>座標プロット</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>座標プロットツール</h1>
+        <form id="coord-form">
+            <div id="point-list">
+                <!-- 座標入力欄の初期セット -->
+                <div class="point-input">
+                    <input type="text" name="name" placeholder="点名" value="P1">
+                    <input type="number" name="x" placeholder="X座標" value="50" required>
+                    <input type="number" name="y" placeholder="Y座標" value="50" required>
+                </div>
+            </div>
+            <!-- ボタン類 -->
+            <div class="form-actions">
+                <button type="button" id="add-point-btn">点を追加</button>
+                <button type="submit">描画</button>
+            </div>
+        </form>
+        <!-- 描画領域となるCanvas -->
+        <canvas id="plot-canvas" width="500" height="500"></canvas>
+        <!-- 情報表示エリア -->
+        <div id="info-display">点をクリックして距離測定を開始します。</div>
+    </div>
+    <!-- JavaScriptファイルの読み込み -->
+    <script src="script.js"></script>
+</body>
+</html>

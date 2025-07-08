@@ -1,0 +1,96 @@
+/* 全体のコンテナ設定 */
+.container {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 1rem;
+    text-align: center;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* フォームの入力欄をグループ化 */
+.point-input {
+    display: flex;
+    gap: 10px; /* 入力欄の間のスペース */
+    margin-bottom: 10px;
+    align-items: center;
+}
+
+.point-input input {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+/* 点名入力欄の幅を調整 */
+.point-input input[name="name"] {
+    width: 80px;
+}
+
+/* 座標入力欄の幅を調整 */
+.point-input input[name="x"],
+.point-input input[name="y"] {
+    width: 100px;
+}
+
+/* フォームのアクションボタンのコンテナ */
+.form-actions {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+/* ボタンのスタイル */
+button {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#add-point-btn {
+    background-color: #28a745; /* 緑色 */
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+#add-point-btn:hover {
+    background-color: #218838;
+}
+
+/* Canvasのスタイル */
+#plot-canvas {
+    border: 1px solid #333;
+    margin-top: 1rem;
+    background-color: #fff;
+}
+
+/* 情報表示エリアのスタイル */
+#info-display {
+    margin-top: 1rem;
+    padding: 10px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    min-height: 2em;
+    line-height: 1.5;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 600px) {
+    .container {
+        margin: 1rem;
+        padding: 0.5rem;
+    }
+    label {
+        display: block;
+        text-align: center;
+        margin-bottom: 5px;
+    }
+}
