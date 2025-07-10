@@ -2,12 +2,22 @@
 const form = document.getElementById('coord-form');
 const pointList = document.getElementById('point-list');
 const addPointBtn = document.getElementById('add-point-btn');
+const removePointBtn = document.getElementById('remove-point-btn');
+const clearHistoryBtn = document.getElementById('clear-history-btn');
 const canvas = document.getElementById('plot-canvas');
 const ctx = canvas.getContext('2d');
 const infoDisplay = document.getElementById('info-display');
 let pointCounter = 2;
 let drawnPoints = []; // 描画された点を保存する配列
 let selectedPoint = null; // 選択中の点を保持する変数
+let previousPoint = null; // 前回クリックした点を保持する変数
+let distanceHistory = []; // 距離履歴を保存する配列
+let drawnLines = []; // 描画された線を保存する配列
+let distanceLabels = []; // 距離ラベルを保存する配列
+let panOffset = { x: 0, y: 0 }; // パン（移動）のオフセット
+let zoomLevel = 1; // ズームレベル
+let isPanning = false; // パン中かどうか
+let lastPanPoint = { x: 0, y: 0 }; // 最後のパン位置
 
 // 「点を追加」ボタンのクリックイベント
 addPointBtn.addEventListener('click', function() {
@@ -22,10 +32,38 @@ addPointBtn.addEventListener('click', function() {
     pointCounter++;
 });
 
+// 「点を削除」ボタンのクリックイベント
+removePointBtn.addEventListener('click', function() {
+    const pointInputs = pointList.querySelectorAll('.point-input');
+    if (pointInputs.length > 1) { // 最低1つの点は残す
+        pointList.removeChild(pointInputs[pointInputs.length - 1]);
+        pointCounter--;
+        
+        // 削除後に再描画
+        plotPoints();
+    }
+});
+
+// 「距離履歴をクリア」ボタンのクリックイベント
+clearHistoryBtn.addEventListener('click', function() {
+    distanceHistory = [];
+    drawnLines = [];
+    distanceLabels = [];
+    previousPoint = null;
+    infoDisplay.textContent = '点をクリックして距離測定を開始します。';
+    
+    // 描画をリセット（点は残す）
+    redrawAllPoints();
+});
+
 // 描画処理を関数にまとめる
 function plotPoints() {
     drawnPoints = []; // 描画前にリストをリセット
     selectedPoint = null; // 選択をリセット
+    previousPoint = null; // 前回クリック点をリセット
+    distanceHistory = []; // 距離履歴をリセット
+    drawnLines = []; // 描画された線をリセット
+    distanceLabels = []; // 距離ラベルをリセット
     infoDisplay.textContent = '点をクリックして距離測定を開始します。';
 
     // Canvasをクリア
@@ -105,16 +143,20 @@ form.addEventListener('submit', function(event) {
  * @param {boolean} isSelected - 選択状態か
  */
 function drawPoint(canvasX, canvasY, name, isSelected = false) {
+    // パンとズームを適用
+    const transformedX = canvasX * zoomLevel + panOffset.x;
+    const transformedY = canvasY * zoomLevel + panOffset.y;
+    
     // 点の描画
     ctx.beginPath();
-    ctx.arc(canvasX, canvasY, 7, 0, Math.PI * 2, true);
+    ctx.arc(transformedX, transformedY, 7 * zoomLevel, 0, Math.PI * 2, true);
     ctx.fillStyle = isSelected ? 'blue' : 'red'; // 選択されている場合は色を変更
     ctx.fill();
 
     // 点名の描画
     ctx.fillStyle = 'black';
-    ctx.font = '12px Arial';
-    ctx.fillText(name, canvasX + 10, canvasY + 5);
+    ctx.font = `${12 * zoomLevel}px Arial`;
+    ctx.fillText(name, transformedX + 10 * zoomLevel, transformedY + 5 * zoomLevel);
 }
 
 /**
@@ -131,20 +173,93 @@ function drawAxes(scale = 1, centerX = 0, centerY = 0) {
     ctx.lineWidth = 1;
 
     // Y軸 (x=0)
-    const originX = (0 - centerX) * scale + canvas.width / 2;
+    const originX = ((0 - centerX) * scale + canvas.width / 2) * zoomLevel + panOffset.x;
     ctx.moveTo(originX, 0);
     ctx.lineTo(originX, canvas.height);
 
     // X軸 (y=0)
-    const originY = canvas.height / 2 - (0 - centerY) * scale;
+    const originY = (canvas.height / 2 - (0 - centerY) * scale) * zoomLevel + panOffset.y;
     ctx.moveTo(0, originY);
     ctx.lineTo(canvas.width, originY);
 
     ctx.stroke();
 }
 
+// Canvasのダブルクリックイベントリスナー（パンモード切替）
+canvas.addEventListener('dblclick', function(event) {
+    event.preventDefault();
+    isPanning = !isPanning;
+    
+    if (isPanning) {
+        canvas.style.cursor = 'grab';
+        infoDisplay.textContent = 'パンモード: ドラッグで移動、ホイールで拡大縮小。ダブルクリックで解除。';
+    } else {
+        canvas.style.cursor = 'default';
+        infoDisplay.textContent = '点をクリックして距離測定を開始します。';
+    }
+});
+
+// Canvasのマウスダウンイベント（パン開始）
+canvas.addEventListener('mousedown', function(event) {
+    if (isPanning) {
+        canvas.style.cursor = 'grabbing';
+        lastPanPoint.x = event.clientX;
+        lastPanPoint.y = event.clientY;
+    }
+});
+
+// Canvasのマウスムーブイベント（パン実行）
+canvas.addEventListener('mousemove', function(event) {
+    if (isPanning && event.buttons === 1) { // 左クリック中
+        const deltaX = event.clientX - lastPanPoint.x;
+        const deltaY = event.clientY - lastPanPoint.y;
+        
+        panOffset.x += deltaX;
+        panOffset.y += deltaY;
+        
+        lastPanPoint.x = event.clientX;
+        lastPanPoint.y = event.clientY;
+        
+        redrawAllPoints();
+    }
+});
+
+// Canvasのマウスアップイベント（パン終了）
+canvas.addEventListener('mouseup', function(event) {
+    if (isPanning) {
+        canvas.style.cursor = 'grab';
+    }
+});
+
+// Canvasのホイールイベント（ズーム）
+canvas.addEventListener('wheel', function(event) {
+    if (isPanning) {
+        event.preventDefault();
+        
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = event.clientX - rect.left;
+        const mouseY = event.clientY - rect.top;
+        
+        // ズーム前のマウス位置（ワールド座標）
+        const worldX = (mouseX - panOffset.x) / zoomLevel;
+        const worldY = (mouseY - panOffset.y) / zoomLevel;
+        
+        // ズームレベルを更新
+        const zoomFactor = event.deltaY > 0 ? 0.9 : 1.1;
+        zoomLevel *= zoomFactor;
+        zoomLevel = Math.max(0.1, Math.min(5, zoomLevel)); // 0.1～5倍に制限
+        
+        // ズーム後のマウス位置を維持するようにパンオフセットを調整
+        panOffset.x = mouseX - worldX * zoomLevel;
+        panOffset.y = mouseY - worldY * zoomLevel;
+        
+        redrawAllPoints();
+    }
+});
+
 // Canvasのクリックイベントリスナー
 canvas.addEventListener('click', function(event) {
+    if (isPanning) return; // パンモード中はクリック処理を無効
     const rect = canvas.getBoundingClientRect();
     const clickX = event.clientX - rect.left;
     const clickY = event.clientY - rect.top;
@@ -152,25 +267,63 @@ canvas.addEventListener('click', function(event) {
     const clickedPoint = getClickedPoint(clickX, clickY);
 
     if (clickedPoint) {
-        if (!selectedPoint) {
-            // 1点目の選択
-            selectedPoint = clickedPoint;
-            infoDisplay.textContent = `${selectedPoint.name} を選択しました。2点目を選択してください。`;
+        if (!previousPoint) {
+            // 最初の点の選択
+            previousPoint = clickedPoint;
+            infoDisplay.textContent = `${previousPoint.name} を選択しました。次の点を選択してください。`;
             redrawAllPoints(); // ハイライト表示のために再描画
+        } else if (previousPoint === clickedPoint) {
+            // 同じ点をクリックした場合は選択を解除し、線もクリア
+            previousPoint = null;
+            drawnLines = [];
+            distanceLabels = [];
+            distanceHistory = [];
+            infoDisplay.textContent = '点をクリックして距離測定を開始します。';
+            redrawAllPoints();
         } else {
-            // 2点目の選択と距離計算
-            const distance = calculateDistance(selectedPoint, clickedPoint);
-            infoDisplay.textContent = `${selectedPoint.name} と ${clickedPoint.name} の距離: ${distance.toFixed(2)}`;
+            // 連続点間距離を計算
+            const distance = calculateDistance(previousPoint, clickedPoint);
+            const distanceText = `${previousPoint.name}→${clickedPoint.name}：${distance.toFixed(3)}m`;
+            
+            // 距離履歴に追加
+            distanceHistory.push(distanceText);
             
             // 2点間に線を描画
-            drawLine(selectedPoint, clickedPoint);
-
-            selectedPoint = null; // 選択をリセット
-            // redrawAllPoints(); // 線を引いた後にハイライトを消す場合はコメントを外す
+            drawLine(previousPoint, clickedPoint);
+            
+            // 線を履歴に保存
+            drawnLines.push({p1: previousPoint, p2: clickedPoint});
+            
+            // キャンバス上に距離ラベルを追加（線に並行に配置）
+            const midX = (previousPoint.canvasX + clickedPoint.canvasX) / 2;
+            const midY = (previousPoint.canvasY + clickedPoint.canvasY) / 2;
+            
+            // 線の角度を計算
+            const deltaX = clickedPoint.canvasX - previousPoint.canvasX;
+            const deltaY = clickedPoint.canvasY - previousPoint.canvasY;
+            const angle = Math.atan2(deltaY, deltaX);
+            
+            // 線から少し離れた位置に配置（垂直方向に10px離す）
+            const offsetX = -Math.sin(angle) * 15;
+            const offsetY = Math.cos(angle) * 15;
+            
+            distanceLabels.push({
+                x: midX + offsetX,
+                y: midY + offsetY,
+                text: `${distance.toFixed(3)}m`,
+                angle: angle
+            });
+            
+            // 距離履歴を表示
+            updateDistanceDisplay();
+            
+            // 現在の点を次の前回点に設定
+            previousPoint = clickedPoint;
+            redrawAllPoints();
         }
     } else {
         // 何もない場所がクリックされたら選択をリセット
-        selectedPoint = null;
+        previousPoint = null;
         infoDisplay.textContent = '点をクリックして距離測定を開始します。';
         redrawAllPoints();
     }
@@ -187,7 +340,10 @@ function getClickedPoint(clickX, clickY) {
     let minDistance = 10; // クリック判定の半径
 
     drawnPoints.forEach(point => {
-        const distance = Math.sqrt(Math.pow(point.canvasX - clickX, 2) + Math.pow(point.canvasY - clickY, 2));
+        // パンとズームを考慮した座標でクリック判定
+        const transformedX = point.canvasX * zoomLevel + panOffset.x;
+        const transformedY = point.canvasY * zoomLevel + panOffset.y;
+        const distance = Math.sqrt(Math.pow(transformedX - clickX, 2) + Math.pow(transformedY - clickY, 2));
         if (distance < minDistance) {
             minDistance = distance;
             closestPoint = point;
@@ -212,8 +368,20 @@ function calculateDistance(p1, p2) {
 function redrawAllPoints() {
     clearCanvas();
     drawAxes();
+    
+    // 描画された線を再描画
+    drawnLines.forEach(line => {
+        drawLine(line.p1, line.p2);
+    });
+    
+    // 距離ラベルを再描画
+    distanceLabels.forEach(label => {
+        drawDistanceLabel(label.x, label.y, label.text, label.angle);
+    });
+    
+    // 点を再描画
     drawnPoints.forEach(p => {
-        drawPoint(p.canvasX, p.canvasY, p.name, p === selectedPoint);
+        drawPoint(p.canvasX, p.canvasY, p.name, p === previousPoint);
     });
 }
 
@@ -223,12 +391,60 @@ function redrawAllPoints() {
  * @param {object} p2 - 点2
  */
 function drawLine(p1, p2) {
+    const x1 = p1.canvasX * zoomLevel + panOffset.x;
+    const y1 = p1.canvasY * zoomLevel + panOffset.y;
+    const x2 = p2.canvasX * zoomLevel + panOffset.x;
+    const y2 = p2.canvasY * zoomLevel + panOffset.y;
+    
     ctx.beginPath();
-    ctx.moveTo(p1.canvasX, p1.canvasY);
-    ctx.lineTo(p2.canvasX, p2.canvasY);
-    ctx.strokeStyle = 'green';
-    ctx.lineWidth = 2;
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = 'blue';
+    ctx.lineWidth = 2 * zoomLevel;
     ctx.stroke();
+}
+
+/**
+ * キャンバス上に距離ラベルを描画する
+ * @param {number} x - X座標
+ * @param {number} y - Y座標
+ * @param {string} text - 表示するテキスト
+ * @param {number} angle - 線の角度（ラジアン）
+ */
+function drawDistanceLabel(x, y, text, angle = 0) {
+    ctx.save();
+    
+    // パンとズームを適用した座標に移動し、回転させる
+    const transformedX = x * zoomLevel + panOffset.x;
+    const transformedY = y * zoomLevel + panOffset.y;
+    
+    ctx.translate(transformedX, transformedY);
+    ctx.rotate(angle);
+    
+    // 背景を描画
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.font = `${12 * zoomLevel}px Arial`;
+    const textWidth = ctx.measureText(text).width;
+    const padding = 3 * zoomLevel;
+    ctx.fillRect(-textWidth/2 - padding, -8 * zoomLevel - padding, textWidth + padding*2, 16 * zoomLevel + padding*2);
+    
+    // テキストを描画
+    ctx.fillStyle = '#333';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, 0, 0);
+    
+    ctx.restore();
+}
+
+/**
+ * 距離履歴を表示する
+ */
+function updateDistanceDisplay() {
+    if (distanceHistory.length > 0) {
+        const historyText = distanceHistory.join('<br>');
+        infoDisplay.innerHTML = `距離履歴:<br>${historyText}`;
+    }
 }
 
 // 初期描画

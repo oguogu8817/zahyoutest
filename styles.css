@@ -57,12 +57,28 @@ button {
     background-color: #28a745; /* 緑色 */
 }
 
+#remove-point-btn {
+    background-color: #fd7e14; /* オレンジ色 */
+}
+
+#clear-history-btn {
+    background-color: #dc3545; /* 赤色 */
+}
+
 button:hover {
     background-color: #0056b3;
 }
 
 #add-point-btn:hover {
     background-color: #218838;
+}
+
+#remove-point-btn:hover {
+    background-color: #e55812;
+}
+
+#clear-history-btn:hover {
+    background-color: #c82333;
 }
 
 /* Canvasのスタイル */
@@ -80,6 +96,9 @@ button:hover {
     border-radius: 4px;
     min-height: 2em;
     line-height: 1.5;
+    text-align: left;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
 }
 
 /* レスポンシブ対応 */
