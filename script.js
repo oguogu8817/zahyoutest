@@ -532,17 +532,22 @@ function handleTouchEnd(event) {
     event.preventDefault();
     lastTouchDistance = null;
 
-    // タップ（クリック）をシミュレート
+    // タップ（クリック）を直接処理
     if (event.changedTouches.length === 1 && !isPanning) {
-         const touch = event.changedTouches[0];
-         const mouseEvent = new MouseEvent('click', {
-             clientX: touch.clientX,
-             clientY: touch.clientY
-         });
-         canvas.dispatchEvent(mouseEvent);
+        const touch = event.changedTouches[0];
+        const rect = canvas.getBoundingClientRect();
+        const normalizedX = touch.clientX - rect.left;
+        const normalizedY = touch.clientY - rect.top;
+        handleCanvasClick(normalizedX, normalizedY);
     }
 }
 
 
+// --- キャンバスクリック処理 ---
+function handleCanvasClick(x, y) {
+    // Add the logic for handling canvas clicks here.
+    // For example, selecting a point, drawing, or other interactions.
+    console.log(`Canvas clicked at: (${x}, ${y})`);
+}
 // --- 初期化 ---
 plotPoints();
