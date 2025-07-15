@@ -15,6 +15,7 @@
     gap: 10px; /* 入力欄の間のスペース */
     margin-bottom: 10px;
     align-items: center;
+    justify-content: center;
 }
 
 .point-input input {
@@ -44,37 +45,50 @@
 
 /* ボタンのスタイル */
 button {
-    padding: 10px 20px;
-    background-color: #007bff;
+    margin: 5px;
+    padding: 10px 15px;
+    font-size: 16px;
+    cursor: pointer;
     color: white;
     border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.3s;
+    border-radius: 5px; /* 角を少し丸める */
+}
+
+#plot-btn {
+    background-color: #007bff; /* 青色 (Primary) */
+}
+
+#plot-btn:hover {
+    background-color: #0056b3; /* 少し暗い青 */
+}
+
+.point.selected {
+    fill: red;
+}
+
+.point-label.selected {
+    fill: red;
+    font-weight: bold;
 }
 
 #add-point-btn {
     background-color: #28a745; /* 緑色 */
 }
 
-#remove-point-btn {
-    background-color: #fd7e14; /* オレンジ色 */
-}
-
-#clear-history-btn {
-    background-color: #dc3545; /* 赤色 */
-}
-
-button:hover {
-    background-color: #0056b3;
-}
-
 #add-point-btn:hover {
     background-color: #218838;
 }
 
+#remove-point-btn {
+    background-color: #fd7e14; /* オレンジ色 */
+}
+
 #remove-point-btn:hover {
     background-color: #e55812;
+}
+
+#clear-history-btn {
+    background-color: #dc3545; /* 赤色 */
 }
 
 #clear-history-btn:hover {
