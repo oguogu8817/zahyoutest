@@ -293,7 +293,7 @@ function handleCanvasClick(event) {
 function getClickedPoint(clickX, clickY) {
     let closestPoint = null;
     // クリック判定の半径をズームレベルに合わせる
-    let minDistance = 15 * zoomLevel; 
+    let minDistance = CLICK_RADIUS_BASE * zoomLevel; 
 
     drawnPoints.forEach(point => {
         const transformedX = point.canvasX * zoomLevel + panOffset.x;
