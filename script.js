@@ -18,6 +18,9 @@ let panOffset = { x: 0, y: 0 }; // パン（移動）のオフセット
 let zoomLevel = 1; // ズームレベル
 let isPanning = false; // パン中かどうか
 let lastPanPoint = { x: 0, y: 0 }; // 最後のパン位置
+const CLICK_RADIUS_BASE = 15; // クリック判定の基準半径
+let anglePoints = []; // 角度計算用の3点を保存する配列
+let angleLabels = []; // 角度ラベルを保存する配列
 
 // --- イベントリスナー ---
 
@@ -49,6 +52,8 @@ clearHistoryBtn.addEventListener('click', function() {
     distanceHistory = [];
     drawnLines = [];
     distanceLabels = [];
+    anglePoints = [];
+    angleLabels = [];
     previousPointForDistance = null;
     selectedPoint = null;
     infoDisplay.textContent = '点をクリックして選択または距離測定を開始します。';
@@ -97,6 +102,8 @@ function plotPoints() {
     distanceHistory = [];
     drawnLines = [];
     distanceLabels = [];
+    anglePoints = [];
+    angleLabels = [];
     infoDisplay.textContent = '点をクリックして選択または距離測定を開始します。';
 
     clearCanvas();
@@ -169,7 +176,7 @@ function drawPoint(p) {
     if (isSelected) {
         ctx.font = `bold ${12 * zoomLevel}px Arial`;
     }
-    ctx.fillText(p.name, transformedX + 10 * zoomLevel, transformedY + 5 * zoomLevel);
+    ctx.fillText(p.name, transformedX + 15 * zoomLevel, transformedY - 10 * zoomLevel);
 }
 
 /**
@@ -204,6 +211,7 @@ function redrawAll() {
     
     drawnLines.forEach(line => drawLine(line.p1, line.p2));
     distanceLabels.forEach(label => drawDistanceLabel(label.x, label.y, label.text, label.angle));
+    angleLabels.forEach(label => drawAngleLabel(label.x, label.y, label.text));
     drawnPoints.forEach(p => drawPoint(p));
 }
 
@@ -257,6 +265,17 @@ function handleCanvasClick(event) {
                 calculateAndDrawDistance(previousPointForDistance, clickedPoint);
             }
             
+            // 角度計算のための点を追加
+            anglePoints.push(clickedPoint);
+            if (anglePoints.length > 3) {
+                anglePoints.shift(); // 3点を超えたら最初の点を削除
+            }
+            
+            // 3点揃ったら角度を計算して表示
+            if (anglePoints.length === 3) {
+                calculateAndDrawAngle(anglePoints[0], anglePoints[1], anglePoints[2]);
+            }
+            
             // Select the new point.
             selectedPoint = clickedPoint;
             // Set it as the starting point for the *next* distance measurement.
@@ -264,7 +283,8 @@ function handleCanvasClick(event) {
             
             // Update info display
             updateDistanceDisplay();
-            if (distanceHistory.length > 0) {
+            updateAngleDisplay();
+            if (distanceHistory.length > 0 || angleLabels.length > 0) {
                  infoDisplay.innerHTML += `<br>${selectedPoint.name} を選択中。`;
             } else {
                  infoDisplay.textContent = `${selectedPoint.name} を選択しました。次の点を選択して距離を測定します。`;
@@ -276,10 +296,12 @@ function handleCanvasClick(event) {
         selectedPoint = null;
         previousPointForDistance = null;
         
-        // Also clear all distance related data
+        // Also clear all distance and angle related data
         distanceHistory = [];
         drawnLines = [];
         distanceLabels = [];
+        anglePoints = [];
+        angleLabels = [];
 
         infoDisplay.textContent = '点をクリックして選択または距離測定を開始します。';
     }
@@ -308,8 +330,8 @@ function getClickedPoint(clickX, clickY) {
         }
 
         // 点名ラベルとの当たり判定
-        const labelX = transformedX + 10 * zoomLevel;
-        const labelY = transformedY + 5 * zoomLevel;
+        const labelX = transformedX + 15 * zoomLevel;
+        const labelY = transformedY - 10 * zoomLevel;
         ctx.font = `${12 * zoomLevel}px Arial`;
         const labelWidth = ctx.measureText(point.name).width;
         const labelHeight = 12 * zoomLevel;
@@ -398,6 +420,64 @@ function drawDistanceLabel(x, y, text, angle = 0) {
 function updateDistanceDisplay() {
     if (distanceHistory.length > 0) {
         infoDisplay.innerHTML = `距離履歴:<br>${distanceHistory.join('<br>')}`;
+    }
+}
+
+/**
+ * 3点間の角度を計算して描画
+ */
+function calculateAndDrawAngle(p1, p2, p3) {
+    // ベクトル p2->p1 と p2->p3 を計算
+    const vec1 = { x: p1.x - p2.x, y: p1.y - p2.y };
+    const vec2 = { x: p3.x - p2.x, y: p3.y - p2.y };
+    
+    // 内積とベクトルの大きさを計算
+    const dot = vec1.x * vec2.x + vec1.y * vec2.y;
+    const mag1 = Math.sqrt(vec1.x * vec1.x + vec1.y * vec1.y);
+    const mag2 = Math.sqrt(vec2.x * vec2.x + vec2.y * vec2.y);
+    
+    // 角度を計算（ラジアンから度に変換）
+    const angleRad = Math.acos(dot / (mag1 * mag2));
+    const angleDeg = angleRad * (180 / Math.PI);
+    
+    // 角度ラベルを配置（p2の位置）
+    angleLabels.push({
+        x: p2.canvasX,
+        y: p2.canvasY - 20,
+        text: `∠${p1.name}${p2.name}${p3.name}: ${angleDeg.toFixed(1)}°`
+    });
+}
+
+/**
+ * 角度ラベルを描画
+ */
+function drawAngleLabel(x, y, text) {
+    const transformedX = x * zoomLevel + panOffset.x;
+    const transformedY = y * zoomLevel + panOffset.y;
+    
+    ctx.fillStyle = 'rgba(255, 255, 0, 0.9)';
+    ctx.font = `${12 * zoomLevel}px Arial`;
+    const textWidth = ctx.measureText(text).width;
+    const padding = 3 * zoomLevel;
+    ctx.fillRect(transformedX - textWidth/2 - padding, transformedY - 8 * zoomLevel - padding, textWidth + padding*2, 16 * zoomLevel + padding*2);
+    
+    ctx.fillStyle = '#000';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, transformedX, transformedY);
+}
+
+/**
+ * 角度表示を更新
+ */
+function updateAngleDisplay() {
+    if (angleLabels.length > 0) {
+        const angleTexts = angleLabels.map(label => label.text);
+        if (distanceHistory.length > 0) {
+            infoDisplay.innerHTML += `<br>角度:<br>${angleTexts.join('<br>')}`;
+        } else {
+            infoDisplay.innerHTML = `角度:<br>${angleTexts.join('<br>')}`;
+        }
     }
 }
 
@@ -543,11 +623,5 @@ function handleTouchEnd(event) {
 }
 
 
-// --- キャンバスクリック処理 ---
-function handleCanvasClick(x, y) {
-    // Add the logic for handling canvas clicks here.
-    // For example, selecting a point, drawing, or other interactions.
-    console.log(`Canvas clicked at: (${x}, ${y})`);
-}
 // --- 初期化 ---
 plotPoints();
