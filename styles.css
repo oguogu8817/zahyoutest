@@ -95,6 +95,22 @@ button {
     background-color: #e55812;
 }
 
+#pan-toggle-btn {
+    background-color: #6c757d; /* グレー */
+}
+
+#pan-toggle-btn:hover {
+    background-color: #5a6268;
+}
+
+#pan-toggle-btn.active {
+    background-color: #17a2b8; /* 水色（アクティブ時） */
+}
+
+#pan-toggle-btn.active:hover {
+    background-color: #138496;
+}
+
 #clear-history-btn {
     background-color: #dc3545; /* 赤色 */
 }
