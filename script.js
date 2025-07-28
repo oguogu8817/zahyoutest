@@ -7,6 +7,33 @@ const clearHistoryBtn = document.getElementById('clear-history-btn');
 const canvas = document.getElementById('plot-canvas');
 const ctx = canvas.getContext('2d');
 const infoDisplay = document.getElementById('info-display');
+
+// キャンバスのレスポンシブ対応
+function resizeCanvas() {
+    const container = document.querySelector('.container');
+    const containerWidth = container.clientWidth - 32; // paddingを考慮
+    
+    // モバイル画面では画面幅に合わせる
+    if (window.innerWidth < 768) {
+        canvas.width = Math.min(containerWidth, 400);
+        canvas.height = canvas.width; // 正方形を維持
+    } else if (window.innerWidth < 1024) {
+        canvas.width = 500;
+        canvas.height = 500;
+    } else {
+        canvas.width = 600;
+        canvas.height = 600;
+    }
+    
+    // 再描画
+    if (drawnPoints.length > 0) {
+        plotPoints();
+    }
+}
+
+// ページ読み込み時とリサイズ時にキャンバスをリサイズ
+window.addEventListener('load', resizeCanvas);
+window.addEventListener('resize', resizeCanvas);
 let pointCounter = 2;
 let drawnPoints = []; // 描画された点を保存する配列
 let selectedPoint = null; // 選択中の点を保持する変数

@@ -1,57 +1,65 @@
-/* 全体のコンテナ設定 */
+/* モバイルファーストのベーススタイル */
 .container {
-    max-width: 600px;
-    margin: 2rem auto;
-    padding: 1rem;
+    margin: 1rem;
+    padding: 0.75rem;
     text-align: center;
     background-color: #f9f9f9;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-/* フォームの入力欄をグループ化 */
+/* フォームの入力欄を横並びに */
 .point-input {
     display: flex;
-    gap: 10px; /* 入力欄の間のスペース */
-    margin-bottom: 10px;
+    flex-direction: row;
+    gap: 8px;
+    margin-bottom: 15px;
     align-items: center;
     justify-content: center;
 }
 
 .point-input input {
-    padding: 8px;
+    padding: 12px 8px;
     border: 1px solid #ccc;
     border-radius: 4px;
+    font-size: 16px; /* iOS Safariのズームを防ぐ */
+    box-sizing: border-box;
 }
 
-/* 点名入力欄の幅を調整 */
+/* 点名入力欄 */
 .point-input input[name="name"] {
-    width: 80px;
+    width: 60px;
+    flex-shrink: 0;
 }
 
-/* 座標入力欄の幅を調整 */
+/* 座標入力欄 */
 .point-input input[name="x"],
 .point-input input[name="y"] {
-    width: 100px;
+    width: 90px;
+    flex-shrink: 0;
 }
 
-/* フォームのアクションボタンのコンテナ */
+/* フォームのアクションボタンのコンテナ - モバイル向け */
 .form-actions {
     margin-top: 1rem;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     gap: 10px;
+    align-items: stretch;
 }
 
-/* ボタンのスタイル */
+/* ボタンのスタイル - モバイルファースト */
 button {
-    margin: 5px;
-    padding: 10px 15px;
+    margin: 0;
+    padding: 14px 20px;
     font-size: 16px;
     cursor: pointer;
     color: white;
     border: none;
-    border-radius: 5px; /* 角を少し丸める */
+    border-radius: 8px;
+    min-height: 44px; /* タッチターゲットの最小サイズ */
+    width: 100%;
+    box-sizing: border-box;
 }
 
 #plot-btn {
@@ -95,11 +103,15 @@ button {
     background-color: #c82333;
 }
 
-/* Canvasのスタイル */
+/* Canvasのスタイル - モバイルファースト */
 #plot-canvas {
     border: 1px solid #333;
     margin-top: 1rem;
     background-color: #fff;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    aspect-ratio: 1; /* 正方形を維持 */
 }
 
 /* 情報表示エリアのスタイル */
@@ -112,18 +124,77 @@ button {
     line-height: 1.5;
     text-align: left;
     font-family: 'Courier New', monospace;
-    font-size: 14px;
+    font-size: 16px;
 }
 
-/* レスポンシブ対応 */
-@media (max-width: 600px) {
+/* タブレット向けのメディアクエリ */
+@media (min-width: 768px) {
     .container {
-        margin: 1rem;
-        padding: 0.5rem;
+        max-width: 700px;
+        margin: 2rem auto;
+        padding: 1.5rem;
     }
-    label {
-        display: block;
-        text-align: center;
-        margin-bottom: 5px;
+    
+    .point-input {
+        gap: 15px;
+    }
+    
+    .point-input input[name="name"] {
+        width: 80px;
+    }
+    
+    .point-input input[name="x"],
+    .point-input input[name="y"] {
+        width: 110px;
+    }
+    
+    .form-actions {
+        flex-direction: row;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    button {
+        width: auto;
+        min-width: 120px;
+        padding: 12px 20px;
+    }
+    
+    #plot-canvas {
+        width: 500px;
+        height: 500px;
+        aspect-ratio: unset;
+    }
+}
+
+/* デスクトップ向けのメディアクエリ */
+@media (min-width: 1024px) {
+    .container {
+        max-width: 800px;
+        padding: 2rem;
+    }
+    
+    .point-input {
+        gap: 20px;
+    }
+    
+    .point-input input[name="name"] {
+        width: 100px;
+    }
+    
+    .point-input input[name="x"],
+    .point-input input[name="y"] {
+        width: 130px;
+    }
+    
+    button {
+        min-width: 140px;
+        padding: 12px 24px;
+    }
+    
+    #plot-canvas {
+        width: 600px;
+        height: 600px;
     }
 }
